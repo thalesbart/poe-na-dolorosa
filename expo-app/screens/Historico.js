@@ -116,8 +116,13 @@ export default function Historico({ usuario, onEditarLancamento, recarregar }) {
 
             {itens.map((item, i) => {
               const ehReceita = item.tipo === 'receita';
+              const dividido = item.subtipo === 'dividido';
               const recebidoDoOutro = item.dono !== usuario;
-              const valorExibido = recebidoDoOutro ? item.valor_outro : item.valor_dono;
+              // Num item dividido, o valor relevante é sempre a parte do outro:
+              // positivo/verde para quem lançou (tem a receber), negativo/vermelho para quem participou (tem que pagar)
+              const souCredor = dividido && !recebidoDoOutro;
+              const valorExibido = dividido ? item.valor_outro : item.valor_dono;
+              const positivo = ehReceita || souCredor;
               const fixo = isFixo(item);
 
               return (
@@ -151,8 +156,8 @@ export default function Historico({ usuario, onEditarLancamento, recarregar }) {
                       </View>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                      <Text style={[styles.valor, { color: ehReceita ? COLORS.green : fixo ? COLORS.yellow : item.subtipo === 'dividido' ? COLORS.accent : COLORS.red }]}>
-                        {ehReceita ? '+' : '-'}R$ {formatarMoeda(valorExibido)}
+                      <Text style={[styles.valor, { color: positivo ? COLORS.green : fixo ? COLORS.yellow : COLORS.red }]}>
+                        {positivo ? '+' : '-'}R$ {formatarMoeda(valorExibido)}
                       </Text>
                       <TouchableOpacity style={styles.botaoEditar} onPress={() => onEditarLancamento(item)}>
                         <Text style={{ color: COLORS.muted }}>✎</Text>

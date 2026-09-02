@@ -164,21 +164,25 @@ export default function Dashboard({ usuario, fotos = {}, onFotoAtualizada }) {
           const ehReceita = item.tipo === 'receita';
           const dividido = item.subtipo === 'dividido';
           const recebidoDoOutro = item.dono !== usuario;
-          const valorExibido = recebidoDoOutro ? item.valor_outro : item.valor_dono;
+          // Num item dividido, o valor relevante é sempre a parte do outro:
+          // positivo/verde para quem lançou (tem a receber), negativo/vermelho para quem participou (tem que pagar)
+          const souCredor = dividido && !recebidoDoOutro;
+          const valorExibido = dividido ? item.valor_outro : item.valor_dono;
+          const positivo = ehReceita || souCredor;
 
           return (
             <View key={i} style={styles.itemLancamento}>
               <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                <View style={[styles.iconeCircular, { backgroundColor: ehReceita ? COLORS.greenSoft : COLORS.redSoft }]}>
-                  <Text>{ehReceita ? '↑' : '↓'}</Text>
+                <View style={[styles.iconeCircular, { backgroundColor: positivo ? COLORS.greenSoft : COLORS.redSoft }]}>
+                  <Text>{positivo ? '↑' : '↓'}</Text>
                 </View>
                 <View style={{ marginLeft: 12, flex: 1 }}>
                   <Text style={styles.descricaoItem}>{item.descricao}</Text>
                   {dividido && <Tag color={COLORS.accent}>÷ {recebidoDoOutro ? `de ${item.dono}` : item.dividido_com}</Tag>}
                 </View>
               </View>
-              <Text style={[styles.valorItem, { color: ehReceita ? COLORS.green : COLORS.red }]}>
-                {ehReceita ? '+' : '-'}R$ {formatarMoeda(valorExibido)}
+              <Text style={[styles.valorItem, { color: positivo ? COLORS.green : COLORS.red }]}>
+                {positivo ? '+' : '-'}R$ {formatarMoeda(valorExibido)}
               </Text>
             </View>
           );
