@@ -8,7 +8,7 @@ import { COLORS, PESSOAS } from '../theme';
  * O nome escolhido é salvo no AsyncStorage pelo App.js para
  * persistir entre aberturas do app.
  */
-export default function Entrada({ onEscolher }) {
+export default function Entrada({ onEscolher, fotos = {} }) {
   return (
     <View style={styles.container}>
       <View style={styles.box}>
@@ -19,7 +19,7 @@ export default function Entrada({ onEscolher }) {
         <View style={styles.lista}>
           {PESSOAS.map((p) => (
             <TouchableOpacity key={p} style={styles.botaoPessoa} onPress={() => onEscolher(p)}>
-              <Avatar name={p} size={44} />
+              <Avatar name={p} size={44} fotoUrl={fotos[p]} />
               <Text style={styles.nomePessoa}>{p}</Text>
             </TouchableOpacity>
           ))}

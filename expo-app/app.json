@@ -22,6 +22,12 @@
         {
           "color": "#7C6FFF"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O Põe na Dolorosa usa suas fotos para definir a foto do seu perfil."
+        }
       ]
     ],
     "extra": {

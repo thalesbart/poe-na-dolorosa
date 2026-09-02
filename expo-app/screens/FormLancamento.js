@@ -21,7 +21,7 @@ function inferirSubtipo(lancamento) {
   return 'pessoal';
 }
 
-export default function FormLancamento({ usuario, lancamento, onSalvo, onVoltar }) {
+export default function FormLancamento({ usuario, fotos = {}, lancamento, onSalvo, onVoltar }) {
   const outro = outroUsuario(usuario);
   const editando = !!lancamento;
 
@@ -240,7 +240,7 @@ export default function FormLancamento({ usuario, lancamento, onSalvo, onVoltar 
       {subtipo === 'dividido' && (
         <View style={styles.cardDivisao}>
           <View style={styles.linhaOutro}>
-            <Avatar name={outro} size={32} />
+            <Avatar name={outro} size={32} fotoUrl={fotos[outro]} />
             <View style={{ marginLeft: 10 }}>
               <Text style={styles.textoDividindo}>Dividindo com {outro}</Text>
               <Text style={styles.textoMuted}>Quanto é a parte de {outro}?</Text>

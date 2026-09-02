@@ -4,7 +4,7 @@ import Avatar from '../components/Avatar';
 import { api } from '../services/api';
 import { COLORS, outroUsuario, formatarMoeda } from '../theme';
 
-export default function Acerto({ usuario, onAcertoRegistrado }) {
+export default function Acerto({ usuario, fotos = {}, onAcertoRegistrado }) {
   const outro = outroUsuario(usuario);
   const [carregando, setCarregando] = useState(true);
   const [atualizando, setAtualizando] = useState(false);
@@ -80,7 +80,7 @@ export default function Acerto({ usuario, onAcertoRegistrado }) {
       ) : (
         <>
           <View style={styles.cardSaldo}>
-            <Avatar name={outro} size={56} />
+            <Avatar name={outro} size={56} fotoUrl={fotos[outro]} />
             <Text style={styles.labelDeve}>{outroTeDevee ? `${outro} te deve` : `Você deve para ${outro}`}</Text>
             <Text style={styles.valorGrande}>R$ {formatarMoeda(saldo.valor)}</Text>
           </View>

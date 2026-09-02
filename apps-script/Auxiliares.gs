@@ -56,23 +56,81 @@ function cadastrarSimples(nomeAba, nomeColuna, valor) {
 }
 
 /**
+ * Garante que a aba "usuarios" tenha as colunas nome | expo_push_token | foto_url
+ * e retorna { sheet, linha } para o usuário informado (cria a linha se não existir).
+ */
+function encontrarOuCriarLinhaUsuario(usuario) {
+  const sheet = getSheet(SHEET_NAMES.USUARIOS);
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['nome', 'expo_push_token', 'foto_url']);
+  }
+  const dados = sheet.getDataRange().getValues();
+  for (let i = 1; i < dados.length; i++) {
+    if (dados[i][0] === usuario) {
+      return { sheet: sheet, linha: i + 1 };
+    }
+  }
+  sheet.appendRow([usuario, '', '']);
+  return { sheet: sheet, linha: sheet.getLastRow() };
+}
+
+/**
  * Salva ou atualiza o token de push notification de um usuário.
  * body: { usuario, token }
  */
 function salvarTokenPush(body) {
+  const { sheet, linha } = encontrarOuCriarLinhaUsuario(body.usuario);
+  const jaTinhaToken = !!sheet.getRange(linha, 2).getValue();
+  sheet.getRange(linha, 2).setValue(body.token);
+  return { sucesso: true, atualizado: jaTinhaToken };
+}
+
+/**
+ * Salva a foto de perfil de um usuário: recebe a imagem em base64,
+ * grava como arquivo no Google Drive (pasta "Poe na Dolorosa - Fotos de Perfil",
+ * criada automaticamente na primeira vez) e guarda a URL pública na aba "usuarios".
+ * body: { usuario, imagem_base64, mime_type }
+ */
+function salvarFotoPerfil(body) {
+  const NOME_PASTA = 'Poe na Dolorosa - Fotos de Perfil';
+  const pastas = DriveApp.getFoldersByName(NOME_PASTA);
+  const pasta = pastas.hasNext() ? pastas.next() : DriveApp.createFolder(NOME_PASTA);
+
+  const mimeType = body.mime_type || 'image/jpeg';
+  const bytes = Utilities.base64Decode(body.imagem_base64);
+  const blob = Utilities.newBlob(bytes, mimeType, body.usuario + '.jpg');
+
+  // Remove foto antiga do mesmo usuário, se existir, para não acumular lixo no Drive
+  const antigos = pasta.getFilesByName(body.usuario + '.jpg');
+  while (antigos.hasNext()) {
+    antigos.next().setTrashed(true);
+  }
+
+  const arquivo = pasta.createFile(blob);
+  arquivo.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+  // URL direta que funciona embutida em <Image> no app
+  const url = 'https://lh3.googleusercontent.com/d/' + arquivo.getId();
+
+  const { sheet, linha } = encontrarOuCriarLinhaUsuario(body.usuario);
+  sheet.getRange(linha, 3).setValue(url);
+
+  return { sucesso: true, url: url };
+}
+
+/**
+ * Lista as fotos de perfil de todos os usuários cadastrados.
+ * Retorna: { fotos: { "Thales": "https://...", "Tamires": "https://..." } }
+ */
+function listarFotosPerfil() {
   const sheet = getSheet(SHEET_NAMES.USUARIOS);
-  if (sheet.getLastRow() === 0) {
-    sheet.appendRow(['nome', 'expo_push_token']);
-  }
-  const dados = sheet.getDataRange().getValues();
-  for (let i = 1; i < dados.length; i++) {
-    if (dados[i][0] === body.usuario) {
-      sheet.getRange(i + 1, 2).setValue(body.token);
-      return { sucesso: true, atualizado: true };
-    }
-  }
-  sheet.appendRow([body.usuario, body.token]);
-  return { sucesso: true, atualizado: false };
+  if (sheet.getLastRow() === 0) return { fotos: {} };
+  const dados = sheet.getDataRange().getValues().slice(1);
+  const fotos = {};
+  dados.forEach(row => {
+    if (row[0] && row[2]) fotos[row[0]] = row[2];
+  });
+  return { fotos: fotos };
 }
 
 /**

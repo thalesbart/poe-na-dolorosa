@@ -8,6 +8,7 @@ import Historico from './screens/Historico';
 import FormLancamento from './screens/FormLancamento';
 import Acerto from './screens/Acerto';
 import { registrarPushNotifications } from './services/push';
+import { api } from './services/api';
 import { COLORS } from './theme';
 
 const TABS = [
@@ -23,6 +24,7 @@ export default function App() {
   const [lancamentoEditando, setLancamentoEditando] = useState(null);
   const [recarregarHistorico, setRecarregarHistorico] = useState(0);
   const [carregandoUsuarioSalvo, setCarregandoUsuarioSalvo] = useState(true);
+  const [fotos, setFotos] = useState({});
 
   // Recupera o usuário salvo localmente (sem necessidade de login)
   useEffect(() => {
@@ -31,6 +33,14 @@ export default function App() {
       setCarregandoUsuarioSalvo(false);
     });
   }, []);
+
+  const atualizarFotos = useCallback(() => {
+    api.listarFotosPerfil().then((r) => setFotos(r.fotos || {})).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    atualizarFotos();
+  }, [atualizarFotos]);
 
   const escolherUsuario = useCallback(async (nome) => {
     await AsyncStorage.setItem('@pixmedeve_usuario', nome);
@@ -61,20 +71,22 @@ export default function App() {
   }
 
   if (!usuario) {
-    return <Entrada onEscolher={escolherUsuario} />;
+    return <Entrada onEscolher={escolherUsuario} fotos={fotos} />;
   }
 
   return (
     <SafeAreaView style={styles.appContainer}>
       <View style={styles.telaContainer}>
-        {tela === 'dashboard' && <Dashboard usuario={usuario} key={recarregarHistorico} />}
+        {tela === 'dashboard' && (
+          <Dashboard usuario={usuario} fotos={fotos} onFotoAtualizada={atualizarFotos} key={recarregarHistorico} />
+        )}
         {tela === 'historico' && (
           <Historico usuario={usuario} onEditarLancamento={abrirEdicao} recarregar={recarregarHistorico} />
         )}
         {tela === 'novo' && (
-          <FormLancamento usuario={usuario} lancamento={lancamentoEditando} onSalvo={fecharFormulario} onVoltar={fecharFormulario} />
+          <FormLancamento usuario={usuario} fotos={fotos} lancamento={lancamentoEditando} onSalvo={fecharFormulario} onVoltar={fecharFormulario} />
         )}
-        {tela === 'acerto' && <Acerto usuario={usuario} onAcertoRegistrado={() => setRecarregarHistorico((v) => v + 1)} />}
+        {tela === 'acerto' && <Acerto usuario={usuario} fotos={fotos} onAcertoRegistrado={() => setRecarregarHistorico((v) => v + 1)} />}
       </View>
 
       {tela !== 'novo' && (

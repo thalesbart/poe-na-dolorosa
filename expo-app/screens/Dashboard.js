@@ -3,11 +3,17 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator
 import Avatar from '../components/Avatar';
 import Tag from '../components/Tag';
 import { api } from '../services/api';
+import { escolherEEnviarFoto } from '../services/foto';
 import { COLORS, outroUsuario, periodoAtual, formatarMoeda } from '../theme';
 
-export default function Dashboard({ usuario }) {
+export default function Dashboard({ usuario, fotos = {}, onFotoAtualizada }) {
   const outro = outroUsuario(usuario);
   const periodo = periodoAtual();
+
+  const handleTrocarFoto = async () => {
+    const url = await escolherEEnviarFoto(usuario);
+    if (url && onFotoAtualizada) onFotoAtualizada();
+  };
 
   const [carregando, setCarregando] = useState(true);
   const [atualizando, setAtualizando] = useState(false);
@@ -79,7 +85,7 @@ export default function Dashboard({ usuario }) {
         </View>
         <View style={styles.headerDireita}>
           <Text style={styles.periodoTexto}>{periodo}</Text>
-          <Avatar name={usuario} />
+          <Avatar name={usuario} fotoUrl={fotos[usuario]} onPress={handleTrocarFoto} />
         </View>
       </View>
 
@@ -103,7 +109,7 @@ export default function Dashboard({ usuario }) {
       <View style={styles.cardCinza}>
         <Text style={styles.tituloSecao}>SALDO ENTRE VOCÊS</Text>
         <View style={styles.linhaSaldoEntre}>
-          <Avatar name={outro} size={38} />
+          <Avatar name={outro} size={38} fotoUrl={fotos[outro]} />
           <View style={{ marginLeft: 10 }}>
             <Text style={styles.textoMuted}>
               {acertoQuitado ? 'Vocês estão quites 🎉' : outroTeDevee ? `${outro} te deve` : `Você deve para ${outro}`}

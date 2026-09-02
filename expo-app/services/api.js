@@ -44,6 +44,7 @@ export const api = {
   buscarResumo: (usuario, periodo) => get('resumo', { usuario, periodo }),
   carregarDashboard: (usuario, periodo) => get('dashboard', { usuario, periodo }),
   carregarOpcoesFormulario: () => get('opcoes_formulario'),
+  listarFotosPerfil: () => get('fotos_perfil'),
 
   // ---- Escrita ----
   criarTransacao: (dados) => post({ action: 'criar_transacao', ...dados }),
@@ -56,4 +57,6 @@ export const api = {
   cadastrarFormaPagamento: (valor) => post({ action: 'cadastrar_forma', valor }),
   cadastrarCategoria: (valor) => post({ action: 'cadastrar_categoria', valor }),
   salvarTokenPush: (usuario, token) => post({ action: 'salvar_token_push', usuario, token }),
+  salvarFotoPerfil: (usuario, imagemBase64, mimeType) =>
+    post({ action: 'salvar_foto_perfil', usuario, imagem_base64: imagemBase64, mime_type: mimeType }),
 };

@@ -89,6 +89,8 @@ function doGet(e) {
       case 'opcoes_formulario':
         // Combina descrições, descrições de receita, formas e categorias numa única execução
         return jsonResponse(carregarOpcoesFormulario());
+      case 'fotos_perfil':
+        return jsonResponse(listarFotosPerfil());
       default:
         return jsonResponse({ erro: 'Ação GET desconhecida: ' + action });
     }
@@ -136,6 +138,8 @@ function doPost(e) {
         return jsonResponse(cadastrarSimples(SHEET_NAMES.CATEGORIAS, 'categoria', body.valor));
       case 'salvar_token_push':
         return jsonResponse(salvarTokenPush(body));
+      case 'salvar_foto_perfil':
+        return jsonResponse(salvarFotoPerfil(body));
       default:
         return jsonResponse({ erro: 'Ação POST desconhecida: ' + action });
     }
