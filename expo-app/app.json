@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "Põe na Dolorosa",
+    "slug": "poe-na-dolorosa",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0F0F14",
+    "android": {
+      "package": "com.pixmedeve.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0F0F14"
+      }
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.pixmedeve.app"
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#7C6FFF"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "4f423edb-11eb-4d40-af8c-2036c4c77e45"
+      }
+    }
+  }
+}
