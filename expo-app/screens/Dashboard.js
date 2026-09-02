@@ -20,14 +20,10 @@ export default function Dashboard({ usuario }) {
     if (viaRefresh) setAtualizando(true);
     else setCarregando(true);
     try {
-      const [resumoData, saldoData, transacoesData] = await Promise.all([
-        api.buscarResumo(usuario, periodo),
-        api.buscarSaldo(),
-        api.listarTransacoes(usuario, periodo),
-      ]);
-      setResumo(resumoData);
-      setSaldoEntreUsuarios(saldoData);
-      setUltimosLancamentos((transacoesData.transacoes || []).slice(0, 5));
+      const dados = await api.carregarDashboard(usuario, periodo);
+      setResumo(dados.resumo);
+      setSaldoEntreUsuarios(dados.saldo);
+      setUltimosLancamentos((dados.transacoes || []).slice(0, 5));
     } catch (err) {
       Alert.alert('Erro', 'Não foi possível carregar os dados. Verifique sua conexão.');
     } finally {

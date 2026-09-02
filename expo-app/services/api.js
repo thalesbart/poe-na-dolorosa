@@ -42,6 +42,8 @@ export const api = {
   listarCategorias: () => get('categorias'),
   buscarSaldo: () => get('saldo'),
   buscarResumo: (usuario, periodo) => get('resumo', { usuario, periodo }),
+  carregarDashboard: (usuario, periodo) => get('dashboard', { usuario, periodo }),
+  carregarOpcoesFormulario: () => get('opcoes_formulario'),
 
   // ---- Escrita ----
   criarTransacao: (dados) => post({ action: 'criar_transacao', ...dados }),

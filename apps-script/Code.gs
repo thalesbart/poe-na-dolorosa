@@ -82,6 +82,13 @@ function doGet(e) {
       case 'resumo':
         // Resumo sempre precisa de um período concreto — usa o atual se vazio
         return jsonResponse(calcularResumo(usuario, periodoVazio ? periodoAtual() : periodoParam));
+      case 'dashboard':
+        // Combina resumo + saldo + transações recentes numa única execução,
+        // evitando 3 chamadas separadas (cada uma paga o "cold start" do Apps Script)
+        return jsonResponse(carregarDashboard(usuario, periodoVazio ? periodoAtual() : periodoParam));
+      case 'opcoes_formulario':
+        // Combina descrições, descrições de receita, formas e categorias numa única execução
+        return jsonResponse(carregarOpcoesFormulario());
       default:
         return jsonResponse({ erro: 'Ação GET desconhecida: ' + action });
     }

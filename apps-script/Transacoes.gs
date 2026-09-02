@@ -244,3 +244,80 @@ function calcularResumo(usuario, periodo) {
     periodo: periodo,
   };
 }
+
+/**
+ * Combina resumo + saldo entre usuários + últimos lançamentos numa
+ * única leitura da planilha, para o Dashboard carregar com 1 requisição
+ * em vez de 3 (cada requisição ao Apps Script paga overhead próprio).
+ */
+function carregarDashboard(usuario, periodo) {
+  garantirCabecalho();
+  garantirCabecalhoAcertos();
+
+  const sheetT = getSheet(SHEET_NAMES.TRANSACOES);
+  const todasLinhas = sheetT.getDataRange().getValues().slice(1).map(linhaParaObjeto);
+
+  // ---- Resumo do período ----
+  const linhasDoPeriodo = todasLinhas.filter(
+    t => normalizarPeriodo(t.periodo) === periodo && t.status_periodo !== 'fechado'
+  );
+  let receitas = 0;
+  let debitos = 0;
+  linhasDoPeriodo.forEach(t => {
+    if (t.dono === usuario) {
+      if (t.tipo === 'receita') {
+        receitas += Number(t.valor_dono) || 0;
+      } else if (t.tipo === 'debito') {
+        debitos += Number(t.valor_dono) || 0;
+        if (t.subtipo === 'dividido' && t.valor_outro) {
+          receitas += Number(t.valor_outro) || 0;
+        }
+      }
+    } else if (t.dividido_com === usuario) {
+      debitos += Number(t.valor_outro) || 0;
+    }
+  });
+  const resumo = { receitas: receitas, debitos: debitos, saldo: receitas - debitos, periodo: periodo };
+
+  // ---- Últimos lançamentos do usuário no período ----
+  const transacoes = linhasDoPeriodo
+    .filter(t => t.dono === usuario || t.dividido_com === usuario)
+    .sort((a, b) => new Date(b.data) - new Date(a.data));
+
+  // ---- Saldo entre usuários (considera todas as transações divididas, não só do período) ----
+  let thalesAdiantouParaTamires = 0;
+  let tamiresAdiantouParaThales = 0;
+  todasLinhas.filter(t => t.subtipo === 'dividido').forEach(t => {
+    const valorOutro = Number(t.valor_outro) || 0;
+    if (t.dono === 'Thales' && t.dividido_com === 'Tamires') {
+      thalesAdiantouParaTamires += valorOutro;
+    } else if (t.dono === 'Tamires' && t.dividido_com === 'Thales') {
+      tamiresAdiantouParaThales += valorOutro;
+    }
+  });
+  let saldoLiquido = thalesAdiantouParaTamires - tamiresAdiantouParaThales;
+
+  const sheetA = getSheet(SHEET_NAMES.ACERTOS);
+  const acertos = sheetA.getDataRange().getValues().slice(1);
+  acertos.forEach(a => {
+    const valor = Number(a[COL_ACERTO.VALOR]) || 0;
+    const de = a[COL_ACERTO.DE];
+    const para = a[COL_ACERTO.PARA];
+    if (de === 'Tamires' && para === 'Thales') {
+      saldoLiquido -= valor;
+    } else if (de === 'Thales' && para === 'Tamires') {
+      saldoLiquido += valor;
+    }
+  });
+
+  const quemDeve = saldoLiquido > 0 ? 'Tamires' : saldoLiquido < 0 ? 'Thales' : null;
+  const valorAbsoluto = Math.abs(saldoLiquido);
+  const saldo = {
+    saldo_liquido: saldoLiquido,
+    quem_deve: quemDeve,
+    valor: valorAbsoluto,
+    quitado: valorAbsoluto < 0.01,
+  };
+
+  return { resumo: resumo, saldo: saldo, transacoes: transacoes };
+}

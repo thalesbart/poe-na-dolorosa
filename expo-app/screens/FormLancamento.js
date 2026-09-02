@@ -44,10 +44,12 @@ export default function FormLancamento({ usuario, lancamento, onSalvo, onVoltar 
   const [promptAberto, setPromptAberto] = useState(null); // 'descricao' | 'descricao_receita' | 'forma' | 'categoria' | null
 
   useEffect(() => {
-    api.listarDescricoes().then((r) => setDescricoesPessoais(r.valores || []));
-    api.listarDescricoesReceita().then((r) => setDescricoesReceita(r.valores || []));
-    api.listarFormasPagamento().then((r) => setFormasPagamento(r.valores || []));
-    api.listarCategorias().then((r) => setCategorias(r.valores && r.valores.length ? r.valores : CATEGORIAS_PADRAO));
+    api.carregarOpcoesFormulario().then((r) => {
+      setDescricoesPessoais(r.descricoes || []);
+      setDescricoesReceita(r.descricoes_receita || []);
+      setFormasPagamento(r.formas || []);
+      setCategorias(r.categorias && r.categorias.length ? r.categorias : CATEGORIAS_PADRAO);
+    });
   }, []);
 
   const totalNum = parseFloat(total) || 0;

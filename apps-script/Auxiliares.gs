@@ -26,6 +26,20 @@ function listarSimples(nomeAba, nomeColuna) {
 }
 
 /**
+ * Combina descrições pessoais, descrições de receita, formas de pagamento
+ * e categorias numa única execução, para a tela de lançamento carregar
+ * com 1 requisição em vez de 4.
+ */
+function carregarOpcoesFormulario() {
+  return {
+    descricoes: listarSimples(SHEET_NAMES.DESCRICOES, 'descricao').valores,
+    descricoes_receita: listarSimples(SHEET_NAMES.DESCRICOES_RECEITA, 'descricao').valores,
+    formas: listarSimples(SHEET_NAMES.FORMAS, 'forma').valores,
+    categorias: listarSimples(SHEET_NAMES.CATEGORIAS, 'categoria').valores,
+  };
+}
+
+/**
  * Cadastra um novo valor em uma aba "simples", evitando duplicados.
  * body: { valor }
  */
