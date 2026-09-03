@@ -16,6 +16,7 @@ export default function SelectDropdown({
   accentColor = COLORS.accent,
   onAddNew,
   addNewLabel = '+ Adicionar novo...',
+  desabilitado = false,
 }) {
   const [aberto, setAberto] = useState(false);
 
@@ -25,8 +26,9 @@ export default function SelectDropdown({
     <View>
       <Text style={styles.label}>{label.toUpperCase()}</Text>
       <TouchableOpacity
-        style={[styles.campo, { borderColor: value ? accentColor + '99' : COLORS.border }]}
-        onPress={() => setAberto(true)}
+        style={[styles.campo, { borderColor: value ? accentColor + '99' : COLORS.border, opacity: desabilitado ? 0.6 : 1 }]}
+        onPress={() => !desabilitado && setAberto(true)}
+        disabled={desabilitado}
       >
         <Text style={value ? styles.valor : styles.placeholder}>
           {value || placeholder}

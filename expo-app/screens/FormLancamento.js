@@ -39,6 +39,7 @@ export default function FormLancamento({ usuario, fotos = {}, lancamento, onSalv
   const [descricoesReceita, setDescricoesReceita] = useState([]);
   const [formasPagamento, setFormasPagamento] = useState([]);
   const [categorias, setCategorias] = useState(CATEGORIAS_PADRAO);
+  const [carregandoOpcoes, setCarregandoOpcoes] = useState(true);
 
   // Controle do modal de "adicionar novo item"
   const [promptAberto, setPromptAberto] = useState(null); // 'descricao' | 'descricao_receita' | 'forma' | 'categoria' | null
@@ -49,7 +50,7 @@ export default function FormLancamento({ usuario, fotos = {}, lancamento, onSalv
       setDescricoesReceita(r.descricoes_receita || []);
       setFormasPagamento(r.formas || []);
       setCategorias(r.categorias && r.categorias.length ? r.categorias : CATEGORIAS_PADRAO);
-    });
+    }).finally(() => setCarregandoOpcoes(false));
   }, []);
 
   const totalNum = parseFloat(total) || 0;
@@ -169,7 +170,8 @@ export default function FormLancamento({ usuario, fotos = {}, lancamento, onSalv
           value={descricao}
           onChange={setDescricao}
           options={descricoesPessoais}
-          placeholder="Selecione a descrição..."
+          placeholder={carregandoOpcoes ? 'Carregando opções...' : 'Selecione a descrição...'}
+          desabilitado={carregandoOpcoes}
           accentColor={COLORS.red}
           onAddNew={() => setPromptAberto('descricao')}
           addNewLabel="+ Cadastrar nova..."
@@ -180,7 +182,8 @@ export default function FormLancamento({ usuario, fotos = {}, lancamento, onSalv
           value={descricao}
           onChange={setDescricao}
           options={descricoesReceita}
-          placeholder="Selecione a receita..."
+          placeholder={carregandoOpcoes ? 'Carregando opções...' : 'Selecione a receita...'}
+          desabilitado={carregandoOpcoes}
           accentColor={COLORS.green}
           onAddNew={() => setPromptAberto('descricao_receita')}
           addNewLabel="+ Cadastrar nova..."
@@ -205,7 +208,8 @@ export default function FormLancamento({ usuario, fotos = {}, lancamento, onSalv
           value={categoria}
           onChange={setCategoria}
           options={categorias}
-          placeholder="Selecione a categoria..."
+          placeholder={carregandoOpcoes ? 'Carregando opções...' : 'Selecione a categoria...'}
+          desabilitado={carregandoOpcoes}
           onAddNew={() => setPromptAberto('categoria')}
           addNewLabel="+ Cadastrar nova..."
         />
@@ -218,7 +222,8 @@ export default function FormLancamento({ usuario, fotos = {}, lancamento, onSalv
           value={forma}
           onChange={setForma}
           options={formasPagamento}
-          placeholder="Selecione a forma..."
+          placeholder={carregandoOpcoes ? 'Carregando opções...' : 'Selecione a forma...'}
+          desabilitado={carregandoOpcoes}
           onAddNew={() => setPromptAberto('forma')}
         />
       )}
