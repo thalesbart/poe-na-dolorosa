@@ -1,10 +1,29 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, RefreshControl } from 'react-native';
+import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import Avatar from '../components/Avatar';
-import Tag from '../components/Tag';
 import { api } from '../services/api';
 import { escolherEEnviarFoto } from '../services/foto';
 import { COLORS, outroUsuario, periodoAtual, formatarMoeda } from '../theme';
+
+const DESCRICAO_INVESTIMENTOS = 'investimentos';
+const DESCRICAO_DESPESAS_FIXAS = 'despesas fixas';
+
+const CONFIG_CATEGORIA = {
+  receitas: { label: 'Receitas', descricaoPadrao: 'Receitas', tipo: 'receita', subtipo: 'receita', icone: '↑', soft: COLORS.greenSoft, cor: COLORS.green },
+  pessoal: { label: 'Despesa Pessoal', descricaoPadrao: 'Despesa Pessoal', tipo: 'debito', subtipo: 'pessoal', icone: '↓', soft: COLORS.redSoft, cor: COLORS.red },
+  investimentos: { label: 'Investimentos', descricaoPadrao: 'Investimentos', tipo: 'debito', subtipo: 'pessoal', icone: '💰', soft: COLORS.accentSoft, cor: COLORS.accent },
+  fixas: { label: 'Despesas Fixas', descricaoPadrao: 'Despesas Fixas', tipo: 'debito', subtipo: 'pessoal', icone: '📌', soft: COLORS.yellowSoft, cor: COLORS.yellow },
+};
+
+function bucketDaTransacao(t, usuario) {
+  if (t.dono !== usuario) return null;
+  if (t.tipo === 'receita') return 'receitas';
+  if (t.subtipo !== 'pessoal') return null;
+  const desc = String(t.descricao || '').trim().toLowerCase();
+  if (desc === DESCRICAO_INVESTIMENTOS) return 'investimentos';
+  if (desc === DESCRICAO_DESPESAS_FIXAS) return 'fixas';
+  return 'pessoal';
+}
 
 export default function Dashboard({ usuario, fotos = {}, onFotoAtualizada }) {
   const outro = outroUsuario(usuario);
@@ -19,8 +38,12 @@ export default function Dashboard({ usuario, fotos = {}, onFotoAtualizada }) {
   const [atualizando, setAtualizando] = useState(false);
   const [resumo, setResumo] = useState({ receitas: 0, debitos: 0, saldo: 0 });
   const [saldoEntreUsuarios, setSaldoEntreUsuarios] = useState({ quitado: true, quem_deve: null, valor: 0 });
-  const [ultimosLancamentos, setUltimosLancamentos] = useState([]);
+  const [transacoesPeriodo, setTransacoesPeriodo] = useState([]);
   const [confirmandoFechamento, setConfirmandoFechamento] = useState(false);
+
+  const [categoriaEditando, setCategoriaEditando] = useState(null);
+  const [valorInput, setValorInput] = useState('');
+  const [salvandoCategoria, setSalvandoCategoria] = useState(false);
 
   const carregarDados = useCallback(async ({ viaRefresh = false } = {}) => {
     if (viaRefresh) setAtualizando(true);
@@ -29,7 +52,7 @@ export default function Dashboard({ usuario, fotos = {}, onFotoAtualizada }) {
       const dados = await api.carregarDashboard(usuario, periodo);
       setResumo(dados.resumo);
       setSaldoEntreUsuarios(dados.saldo);
-      setUltimosLancamentos((dados.transacoes || []).slice(0, 5));
+      setTransacoesPeriodo(dados.transacoes || []);
     } catch (err) {
       Alert.alert('Erro', 'Não foi possível carregar os dados. Verifique sua conexão.');
     } finally {
@@ -37,6 +60,71 @@ export default function Dashboard({ usuario, fotos = {}, onFotoAtualizada }) {
       setAtualizando(false);
     }
   }, [usuario, periodo]);
+
+  const buckets = { receitas: [], pessoal: [], investimentos: [], fixas: [] };
+  transacoesPeriodo.forEach((t) => {
+    const b = bucketDaTransacao(t, usuario);
+    if (b) buckets[b].push(t);
+  });
+  const totais = Object.fromEntries(
+    Object.keys(buckets).map((id) => [id, buckets[id].reduce((s, t) => s + (Number(t.valor_dono) || 0), 0)])
+  );
+
+  const dividoCredor = transacoesPeriodo
+    .filter((t) => t.subtipo === 'dividido' && t.dono === usuario)
+    .reduce((s, t) => s + (Number(t.valor_outro) || 0), 0);
+  const dividoDevedor = transacoesPeriodo
+    .filter((t) => t.subtipo === 'dividido' && t.dividido_com === usuario)
+    .reduce((s, t) => s + (Number(t.valor_outro) || 0), 0);
+
+  const handleTocarCard = (id) => {
+    const itens = buckets[id];
+    if (itens.length >= 2) {
+      Alert.alert('Vários lançamentos', 'Essa categoria tem mais de um lançamento neste período. Edite cada um pelo Histórico.');
+      return;
+    }
+    const valorAtual = itens.length === 1 ? Number(itens[0].valor_dono) || 0 : totais[id];
+    setCategoriaEditando(id);
+    setValorInput(valorAtual > 0 ? String(valorAtual) : '');
+  };
+
+  const handleCancelarEdicaoCategoria = () => {
+    setCategoriaEditando(null);
+    setValorInput('');
+  };
+
+  const handleConfirmarEdicaoCategoria = async () => {
+    const id = categoriaEditando;
+    const novoValor = parseFloat(valorInput) || 0;
+    if (novoValor <= 0) {
+      Alert.alert('Valor inválido', 'Informe um valor maior que zero.');
+      return;
+    }
+    const itens = buckets[id];
+    const cfg = CONFIG_CATEGORIA[id];
+    setSalvandoCategoria(true);
+    try {
+      if (itens.length === 1) {
+        await api.editarTransacao({ id: itens[0].id, valor_dono: novoValor });
+      } else {
+        await api.criarTransacao({
+          tipo: cfg.tipo,
+          subtipo: cfg.subtipo,
+          descricao: cfg.descricaoPadrao,
+          dono: usuario,
+          valor_dono: novoValor,
+          periodo,
+        });
+      }
+      setCategoriaEditando(null);
+      setValorInput('');
+      await carregarDados();
+    } catch (err) {
+      Alert.alert('Erro', 'Não foi possível salvar o valor.');
+    } finally {
+      setSalvandoCategoria(false);
+    }
+  };
 
   useEffect(() => {
     carregarDados();
@@ -154,39 +242,65 @@ export default function Dashboard({ usuario, fotos = {}, onFotoAtualizada }) {
         )}
       </View>
 
-      {/* Últimos lançamentos */}
+      {/* Categorias do mês */}
       <View>
-        <Text style={styles.tituloSecao}>ÚLTIMOS LANÇAMENTOS</Text>
-        {ultimosLancamentos.length === 0 && (
-          <Text style={styles.textoMuted}>Nenhum lançamento neste período ainda.</Text>
-        )}
-        {ultimosLancamentos.map((item, i) => {
-          const ehReceita = item.tipo === 'receita';
-          const dividido = item.subtipo === 'dividido';
-          const recebidoDoOutro = item.dono !== usuario;
-          // Num item dividido, o valor relevante é sempre a parte do outro:
-          // positivo/verde para quem lançou (tem a receber), negativo/vermelho para quem participou (tem que pagar)
-          const souCredor = dividido && !recebidoDoOutro;
-          const valorExibido = dividido ? item.valor_outro : item.valor_dono;
-          const positivo = ehReceita || souCredor;
+        <Text style={styles.tituloSecao}>NO MÊS</Text>
 
+        {Object.keys(CONFIG_CATEGORIA).map((id) => {
+          const cfg = CONFIG_CATEGORIA[id];
+          const emEdicao = categoriaEditando === id;
           return (
-            <View key={i} style={styles.itemLancamento}>
+            <TouchableOpacity
+              key={id}
+              style={styles.cartaoCategoria}
+              activeOpacity={0.7}
+              disabled={emEdicao}
+              onPress={() => handleTocarCard(id)}
+            >
               <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                <View style={[styles.iconeCircular, { backgroundColor: positivo ? COLORS.greenSoft : COLORS.redSoft }]}>
-                  <Text>{positivo ? '↑' : '↓'}</Text>
+                <View style={[styles.iconeCircular, { backgroundColor: cfg.soft }]}>
+                  <Text>{cfg.icone}</Text>
                 </View>
-                <View style={{ marginLeft: 12, flex: 1 }}>
-                  <Text style={styles.descricaoItem}>{item.descricao}</Text>
-                  {dividido && <Tag color={COLORS.accent}>÷ {recebidoDoOutro ? `de ${item.dono}` : item.dividido_com}</Tag>}
-                </View>
+                <Text style={styles.labelCategoria}>{cfg.label}</Text>
               </View>
-              <Text style={[styles.valorItem, { color: positivo ? COLORS.green : COLORS.red }]}>
-                {positivo ? '+' : '-'}R$ {formatarMoeda(valorExibido)}
-              </Text>
-            </View>
+
+              {emEdicao ? (
+                <View style={styles.linhaEdicaoCategoria}>
+                  <TextInput
+                    style={styles.inputCategoria}
+                    keyboardType="decimal-pad"
+                    autoFocus
+                    value={valorInput}
+                    onChangeText={setValorInput}
+                    placeholder="0,00"
+                    placeholderTextColor={COLORS.muted}
+                  />
+                  <TouchableOpacity onPress={handleCancelarEdicaoCategoria} disabled={salvandoCategoria}>
+                    <Text style={styles.botaoEdicaoCancelar}>✕</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleConfirmarEdicaoCategoria} disabled={salvandoCategoria}>
+                    <Text style={styles.botaoEdicaoConfirmar}>{salvandoCategoria ? '…' : '✓'}</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <Text style={[styles.valorCategoria, { color: cfg.cor }]}>R$ {formatarMoeda(totais[id])}</Text>
+              )}
+            </TouchableOpacity>
           );
         })}
+
+        {/* Contabilidade do que foi dividido — somente informativo, não editável aqui */}
+        <View style={styles.cartaoCategoria}>
+          <View style={[styles.iconeCircular, { backgroundColor: COLORS.accentSoft }]}>
+            <Text>⇄</Text>
+          </View>
+          <View style={{ marginLeft: 12, flex: 1 }}>
+            <Text style={styles.labelCategoria}>Dividido no mês</Text>
+            <Text style={styles.textoDividido}>
+              A receber de {outro}: R$ {formatarMoeda(dividoCredor)} · A pagar: R$ {formatarMoeda(dividoDevedor)}
+            </Text>
+          </View>
+        </View>
       </View>
     </ScrollView>
   );
@@ -225,8 +339,21 @@ const styles = StyleSheet.create({
   botaoTextoBranco: { color: '#fff', fontSize: 14, fontWeight: '700' },
   botaoCancelar: { flex: 1, backgroundColor: COLORS.card, borderWidth: 1, borderColor: COLORS.border, borderRadius: 12, padding: 12, alignItems: 'center' },
   confirmacaoTexto: { color: COLORS.text, fontSize: 13, textAlign: 'center' },
-  itemLancamento: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   iconeCircular: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  descricaoItem: { color: COLORS.text, fontSize: 14, fontWeight: '600' },
-  valorItem: { fontSize: 15, fontWeight: '700' },
+  cartaoCategoria: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: COLORS.card, borderWidth: 1, borderColor: COLORS.border,
+    borderRadius: 14, padding: 14, marginBottom: 10,
+  },
+  labelCategoria: { color: COLORS.text, fontSize: 14, fontWeight: '600', marginLeft: 12 },
+  valorCategoria: { fontSize: 15, fontWeight: '700' },
+  textoDividido: { color: COLORS.muted, fontSize: 11, marginTop: 2 },
+  linhaEdicaoCategoria: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  inputCategoria: {
+    backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.accent + '55',
+    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, color: COLORS.text,
+    fontSize: 14, fontWeight: '700', minWidth: 90, textAlign: 'right',
+  },
+  botaoEdicaoCancelar: { color: COLORS.muted, fontSize: 18 },
+  botaoEdicaoConfirmar: { color: COLORS.green, fontSize: 18, fontWeight: '700' },
 });
