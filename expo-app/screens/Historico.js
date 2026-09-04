@@ -134,7 +134,11 @@ export default function Historico({ usuario, onEditarLancamento, recarregar }) {
                       <View style={styles.linha} />
                     </View>
                   )}
-                  <View style={[styles.itemLinha, statusFechado && { opacity: 0.7 }]}>
+                  <TouchableOpacity
+                    style={[styles.itemLinha, statusFechado && { opacity: 0.7 }]}
+                    onPress={() => onEditarLancamento(item)}
+                    activeOpacity={0.6}
+                  >
                     <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                       <View
                         style={[
@@ -155,15 +159,10 @@ export default function Historico({ usuario, onEditarLancamento, recarregar }) {
                         </View>
                       </View>
                     </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                      <Text style={[styles.valor, { color: positivo ? COLORS.green : fixo ? COLORS.yellow : COLORS.red }]}>
-                        {positivo ? '+' : '-'}R$ {formatarMoeda(valorExibido)}
-                      </Text>
-                      <TouchableOpacity style={styles.botaoEditar} onPress={() => onEditarLancamento(item)}>
-                        <Text style={{ color: COLORS.muted }}>✎</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
+                    <Text style={[styles.valor, { color: positivo ? COLORS.green : fixo ? COLORS.yellow : COLORS.red }]}>
+                      {positivo ? '+' : '-'}R$ {formatarMoeda(valorExibido)}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               );
             })}
@@ -194,6 +193,5 @@ const styles = StyleSheet.create({
   icone: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   descricao: { color: COLORS.text, fontSize: 14, fontWeight: '600' },
   valor: { fontSize: 15, fontWeight: '700' },
-  botaoEditar: { backgroundColor: COLORS.tag, borderWidth: 1, borderColor: COLORS.border, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
   textoVazio: { color: COLORS.muted, textAlign: 'center', marginTop: 40 },
 });

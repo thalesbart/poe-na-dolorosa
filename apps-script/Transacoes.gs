@@ -4,14 +4,16 @@
  *
  * Colunas da aba "transacoes" (nesta ordem):
  * id | data | tipo | subtipo | descricao | categoria | forma_pagamento |
- * dono | valor_dono | dividido_com | valor_outro | periodo | status_periodo
+ * dono | valor_dono | dividido_com | valor_outro | periodo | status_periodo |
+ * acerto_id
  */
 
 const COL = {
   ID: 0, DATA: 1, TIPO: 2, SUBTIPO: 3, DESCRICAO: 4, CATEGORIA: 5,
   FORMA: 6, DONO: 7, VALOR_DONO: 8, DIVIDIDO_COM: 9, VALOR_OUTRO: 10,
-  PERIODO: 11, STATUS_PERIODO: 12,
+  PERIODO: 11, STATUS_PERIODO: 12, ACERTO_ID: 13,
 };
+const NUM_COLUNAS_TRANSACOES = 14;
 
 function garantirCabecalho() {
   const sheet = getSheet(SHEET_NAMES.TRANSACOES);
@@ -19,7 +21,7 @@ function garantirCabecalho() {
     sheet.appendRow([
       'id', 'data', 'tipo', 'subtipo', 'descricao', 'categoria',
       'forma_pagamento', 'dono', 'valor_dono', 'dividido_com',
-      'valor_outro', 'periodo', 'status_periodo',
+      'valor_outro', 'periodo', 'status_periodo', 'acerto_id',
     ]);
   }
 }
@@ -49,6 +51,7 @@ function linhaParaObjeto(row) {
     valor_outro: row[COL.VALOR_OUTRO],
     periodo: row[COL.PERIODO],
     status_periodo: row[COL.STATUS_PERIODO],
+    acerto_id: row[COL.ACERTO_ID],
   };
 }
 
@@ -112,6 +115,7 @@ function criarTransacao(body) {
     body.valor_outro || '',
     periodoAtual(), // salva temporariamente
     'aberto',
+    '', // acerto_id — preenchido quando um acerto quitar esta transação
   ]);
   // Força a célula do período (coluna 12, índice 11) como texto puro
   const celulasPeriodo = sheet.getRange(ultimaLinha + 1, 12);
@@ -149,7 +153,7 @@ function editarTransacao(body) {
   const linha = encontrarLinhaPorId(sheet, body.id);
   if (linha === -1) return { sucesso: false, erro: 'Transação não encontrada' };
 
-  const atual = sheet.getRange(linha, 1, 1, 13).getValues()[0];
+  const atual = sheet.getRange(linha, 1, 1, NUM_COLUNAS_TRANSACOES).getValues()[0];
 
   const atualizado = [
     atual[COL.ID],
@@ -165,10 +169,27 @@ function editarTransacao(body) {
     body.valor_outro !== undefined ? body.valor_outro : atual[COL.VALOR_OUTRO],
     atual[COL.PERIODO],
     atual[COL.STATUS_PERIODO],
+    atual[COL.ACERTO_ID],
   ];
 
-  sheet.getRange(linha, 1, 1, 13).setValues([atualizado]);
+  sheet.getRange(linha, 1, 1, NUM_COLUNAS_TRANSACOES).setValues([atualizado]);
   return { sucesso: true };
+}
+
+/**
+ * Lista as despesas divididas vinculadas a um acerto específico
+ * (usado na tela de Acerto para mostrar o detalhe de um acerto já
+ * realizado). Somente leitura — esses registros não são editáveis.
+ */
+function listarDespesasAcerto(acertoId) {
+  garantirCabecalho();
+  const sheet = getSheet(SHEET_NAMES.TRANSACOES);
+  const linhas = sheet.getDataRange().getValues().slice(1)
+    .map(linhaParaObjeto)
+    .filter(t => t.acerto_id === acertoId)
+    .sort((a, b) => new Date(b.data) - new Date(a.data));
+
+  return { transacoes: linhas };
 }
 
 /**
@@ -185,24 +206,66 @@ function excluirTransacao(body) {
 }
 
 /**
+ * Extrai só o "aaaa-mm" de um rótulo de período, mesmo que ele já
+ * tenha sufixo de fechamento (ex: "2026-09 (2)" -> "2026-09").
+ */
+function baseAnoMes(periodo) {
+  return String(periodo || '').substring(0, 7);
+}
+
+/**
  * Fecha o período atual de um usuário: marca todas as transações
- * "pessoais" dele (dono = usuario) no período como status_periodo = "fechado".
+ * "pessoais" dele (dono = usuario) no período aberto como
+ * status_periodo = "fechado".
  * Não fecha transações divididas pendentes — isso deve ser checado
  * no front-end via calcularSaldoEntreUsuarios() antes de chamar isso.
+ *
+ * Se mais de um fechamento acontecer dentro do mesmo mês (aaaa-mm),
+ * cada fechamento recebe um rótulo numerado — "aaaa-mm (1)",
+ * "aaaa-mm (2)" etc — para não se misturar com os lançamentos que
+ * continuarem sendo abertos depois do fechamento anterior.
  */
 function fecharPeriodo(body) {
   const sheet = getSheet(SHEET_NAMES.TRANSACOES);
   const dados = sheet.getDataRange().getValues();
-  const periodo = body.periodo || periodoAtual();
+  const usuario = body.usuario;
+  const base = baseAnoMes(body.periodo || periodoAtual());
 
+  // Descobre o maior número de fechamento já usado por esse usuário neste mês
+  let maiorNumero = 0;
   for (let i = 1; i < dados.length; i++) {
     const linha = dados[i];
-    if (linha[COL.DONO] === body.usuario && linha[COL.PERIODO] === periodo) {
-      sheet.getRange(i + 1, COL.STATUS_PERIODO + 1).setValue('fechado');
+    if (linha[COL.DONO] !== usuario || linha[COL.STATUS_PERIODO] !== 'fechado') continue;
+    const periodoStr = String(linha[COL.PERIODO]);
+    if (baseAnoMes(periodoStr) !== base) continue;
+    const match = periodoStr.match(/\((\d+)\)$/);
+    const numero = match ? parseInt(match[1], 10) : 0;
+    if (numero > maiorNumero) maiorNumero = numero;
+  }
+  const rotuloFechamento = `${base} (${maiorNumero + 1})`;
+
+  let algumFechado = false;
+  for (let i = 1; i < dados.length; i++) {
+    const linha = dados[i];
+    if (
+      linha[COL.DONO] === usuario &&
+      linha[COL.STATUS_PERIODO] !== 'fechado' &&
+      baseAnoMes(String(linha[COL.PERIODO])) === base
+    ) {
+      const linhaSheet = i + 1;
+      sheet.getRange(linhaSheet, COL.STATUS_PERIODO + 1).setValue('fechado');
+      const celulaPeriodo = sheet.getRange(linhaSheet, COL.PERIODO + 1);
+      celulaPeriodo.setNumberFormat('@STRING@');
+      celulaPeriodo.setValue(rotuloFechamento);
+      algumFechado = true;
     }
   }
 
-  return { sucesso: true, periodo_fechado: periodo };
+  if (!algumFechado) {
+    return { sucesso: false, erro: 'Nenhum lançamento aberto neste período.' };
+  }
+
+  return { sucesso: true, periodo_fechado: rotuloFechamento };
 }
 
 /**

@@ -21,6 +21,17 @@ function inferirSubtipo(lancamento) {
   return 'pessoal';
 }
 
+function arredondar2(valor) {
+  return Math.round((valor + Number.EPSILON) * 100) / 100;
+}
+
+function percentualInicial(lancamento) {
+  if (!lancamento || lancamento.subtipo !== 'dividido') return '50';
+  const total = (Number(lancamento.valor_dono) || 0) + (Number(lancamento.valor_outro) || 0);
+  if (total <= 0) return '50';
+  return String(arredondar2(((Number(lancamento.valor_outro) || 0) / total) * 100));
+}
+
 export default function FormLancamento({ usuario, fotos = {}, lancamento, onSalvo, onVoltar }) {
   const outro = outroUsuario(usuario);
   const editando = !!lancamento;
@@ -32,7 +43,7 @@ export default function FormLancamento({ usuario, fotos = {}, lancamento, onSalv
   const [total, setTotal] = useState(
     lancamento ? String((Number(lancamento.valor_dono) || 0) + (Number(lancamento.valor_outro) || 0)) : ''
   );
-  const [valorOutroInput, setValorOutroInput] = useState(lancamento?.valor_outro?.toString() || '');
+  const [percentualOutroInput, setPercentualOutroInput] = useState(percentualInicial(lancamento));
   const [salvando, setSalvando] = useState(false);
 
   const [descricoesPessoais, setDescricoesPessoais] = useState([]);
@@ -54,7 +65,8 @@ export default function FormLancamento({ usuario, fotos = {}, lancamento, onSalv
   }, []);
 
   const totalNum = parseFloat(total) || 0;
-  const valorOutroNum = parseFloat(valorOutroInput) || 0;
+  const percentualOutroNum = parseFloat(percentualOutroInput) || 0;
+  const valorOutroNum = subtipo === 'dividido' ? arredondar2((totalNum * percentualOutroNum) / 100) : 0;
   const minhaParte = totalNum > 0 ? totalNum - valorOutroNum : 0;
 
   const handleConfirmarNovoItem = async (texto) => {
@@ -82,8 +94,9 @@ export default function FormLancamento({ usuario, fotos = {}, lancamento, onSalv
   const validar = () => {
     if (!descricao) return 'Preencha a descrição.';
     if (totalNum <= 0) return 'Informe um valor total válido.';
-    if (subtipo === 'dividido' && valorOutroNum <= 0) return `Informe a parte de ${outro}.`;
-    if (subtipo === 'dividido' && minhaParte < 0) return `O valor de ${outro} não pode ser maior que o total.`;
+    if (subtipo === 'dividido' && (percentualOutroNum <= 0 || percentualOutroNum > 100)) {
+      return `Informe uma porcentagem válida para ${outro} (entre 0 e 100).`;
+    }
     return null;
   };
 
@@ -155,7 +168,7 @@ export default function FormLancamento({ usuario, fotos = {}, lancamento, onSalv
               setSubtipo(s.id);
               setDescricao('');
               setForma('');
-              setValorOutroInput('');
+              setPercentualOutroInput('50');
             }}
           >
             <Text style={[styles.tabTexto, subtipo === s.id && { color: '#fff' }]}>{s.label}</Text>
@@ -254,15 +267,21 @@ export default function FormLancamento({ usuario, fotos = {}, lancamento, onSalv
 
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.labelPequeno}>PARTE DE {outro.toUpperCase()}</Text>
-              <TextInput
-                style={styles.inputDivisao}
-                placeholder="R$ 0"
-                placeholderTextColor={COLORS.muted}
-                keyboardType="decimal-pad"
-                value={valorOutroInput}
-                onChangeText={setValorOutroInput}
-              />
+              <Text style={styles.labelPequeno}>% DE {outro.toUpperCase()}</Text>
+              <View style={styles.linhaPercentual}>
+                <TextInput
+                  style={[styles.inputDivisao, { flex: 1 }]}
+                  placeholder="50"
+                  placeholderTextColor={COLORS.muted}
+                  keyboardType="decimal-pad"
+                  value={percentualOutroInput}
+                  onChangeText={setPercentualOutroInput}
+                />
+                <Text style={styles.simboloPercentual}>%</Text>
+              </View>
+              {totalNum > 0 && (
+                <Text style={styles.textoMuted}>= R$ {valorOutroNum.toFixed(2)}</Text>
+              )}
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.labelPequeno}>SUA PARTE</Text>
@@ -338,6 +357,8 @@ const styles = StyleSheet.create({
   textoDividindo: { color: COLORS.text, fontSize: 14, fontWeight: '600' },
   textoMuted: { color: COLORS.muted, fontSize: 11 },
   inputDivisao: { backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.accent + '55', borderRadius: 10, padding: 12, color: COLORS.text, fontSize: 16, fontWeight: '700' },
+  linhaPercentual: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  simboloPercentual: { color: COLORS.text, fontSize: 16, fontWeight: '700' },
   minhaParteBox: { backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, borderRadius: 10, padding: 12, minHeight: 46, justifyContent: 'center' },
   minhaParteTexto: { color: COLORS.text, fontSize: 16, fontWeight: '700' },
   botaoSalvar: { borderRadius: 14, padding: 16, alignItems: 'center' },

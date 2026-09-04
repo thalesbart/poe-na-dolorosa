@@ -79,6 +79,10 @@ function doGet(e) {
         return jsonResponse(listarSimples(SHEET_NAMES.CATEGORIAS, 'categoria'));
       case 'saldo':
         return jsonResponse(calcularSaldoEntreUsuarios());
+      case 'acertos':
+        return jsonResponse(listarAcertos());
+      case 'despesas_acerto':
+        return jsonResponse(listarDespesasAcerto(e.parameter.acerto_id));
       case 'resumo':
         // Resumo sempre precisa de um período concreto — usa o atual se vazio
         return jsonResponse(calcularResumo(usuario, periodoVazio ? periodoAtual() : periodoParam));

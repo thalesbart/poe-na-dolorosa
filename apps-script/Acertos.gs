@@ -77,14 +77,28 @@ function calcularSaldoEntreUsuarios() {
 /**
  * Registra um acerto (pagamento) entre os dois usuários.
  * body esperado: { valor, de, para }
+ *
+ * Também vincula ao acerto todas as despesas divididas ainda sem
+ * acerto_id (ou seja, pendentes até agora), para que a tela de Acerto
+ * consiga mostrar depois quais lançamentos foram quitados por ele.
  */
 function registrarAcerto(body) {
   garantirCabecalhoAcertos();
+  garantirCabecalho();
   const sheet = getSheet(SHEET_NAMES.ACERTOS);
   const id = gerarId();
   const data = new Date().toISOString();
 
   sheet.appendRow([id, data, body.valor, body.de, body.para]);
+
+  const sheetT = getSheet(SHEET_NAMES.TRANSACOES);
+  const dadosT = sheetT.getDataRange().getValues();
+  for (let i = 1; i < dadosT.length; i++) {
+    const linha = dadosT[i];
+    if (linha[COL.SUBTIPO] === 'dividido' && !linha[COL.ACERTO_ID]) {
+      sheetT.getRange(i + 1, COL.ACERTO_ID + 1).setValue(id);
+    }
+  }
 
   notificarUsuario(
     body.para,
@@ -93,4 +107,26 @@ function registrarAcerto(body) {
   );
 
   return { sucesso: true, id: id };
+}
+
+/**
+ * Lista todos os acertos já realizados, do mais recente para o mais antigo.
+ */
+function listarAcertos() {
+  garantirCabecalhoAcertos();
+  const sheet = getSheet(SHEET_NAMES.ACERTOS);
+  const dados = sheet.getDataRange().getValues().slice(1);
+
+  const acertos = dados
+    .filter(a => a[COL_ACERTO.ID])
+    .map(a => ({
+      id: a[COL_ACERTO.ID],
+      data: a[COL_ACERTO.DATA],
+      valor: a[COL_ACERTO.VALOR],
+      de: a[COL_ACERTO.DE],
+      para: a[COL_ACERTO.PARA],
+    }))
+    .sort((a, b) => new Date(b.data) - new Date(a.data));
+
+  return { acertos: acertos };
 }
