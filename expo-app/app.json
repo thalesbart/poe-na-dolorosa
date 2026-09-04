@@ -12,7 +12,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0F0F14"
-      }
+      },
+      "softwareKeyboardLayoutMode": "resize"
     },
     "ios": {
       "supportsTablet": false,
