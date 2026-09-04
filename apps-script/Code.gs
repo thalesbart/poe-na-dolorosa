@@ -46,6 +46,10 @@ function gerarId() {
   return Utilities.getUuid();
 }
 
+function outroUsuario(usuario) {
+  return usuario === 'Thales' ? 'Tamires' : 'Thales';
+}
+
 /**
  * GET /exec?action=...
  * Ações disponíveis:

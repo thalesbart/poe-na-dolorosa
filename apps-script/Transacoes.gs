@@ -271,6 +271,11 @@ function fecharPeriodo(body) {
 /**
  * Calcula o resumo do dashboard para um usuário em um período:
  * receitas, débitos totais (próprios + parte dividida) e saldo.
+ *
+ * A parte dividida (o que o outro usuário deve, ou o que devo a ele) só
+ * entra em receitas/débitos se isso for coerente com o saldo GERAL entre
+ * os dois usuários — senão daria pra parecer "receita" um valor que na
+ * prática está sendo consumido por uma dívida maior na direção contrária.
  */
 function calcularResumo(usuario, periodo) {
   garantirCabecalho();
@@ -278,6 +283,11 @@ function calcularResumo(usuario, periodo) {
   const dados = sheet.getDataRange().getValues();
   const linhas = dados.slice(1).map(linhaParaObjeto)
     .filter(t => normalizarPeriodo(t.periodo) === periodo && t.status_periodo !== 'fechado');
+
+  const saldoGeral = calcularSaldoEntreUsuarios();
+  const outro = outroUsuario(usuario);
+  const saldoFavoravel = saldoGeral.quem_deve === outro; // o outro deve para mim
+  const saldoDesfavoravel = saldoGeral.quem_deve === usuario; // eu devo para o outro
 
   let receitas = 0;
   let debitos = 0;
@@ -289,13 +299,15 @@ function calcularResumo(usuario, periodo) {
       } else if (t.tipo === 'debito') {
         // Minha parte vai para débitos
         debitos += Number(t.valor_dono) || 0;
-        // Parte da outra pessoa vai para receitas (ela me deve)
-        if (t.subtipo === 'dividido' && t.valor_outro) {
+        // Parte da outra pessoa vai para receitas (ela me deve) — só se o
+        // saldo geral entre nós dois estiver a meu favor
+        if (t.subtipo === 'dividido' && t.valor_outro && saldoFavoravel) {
           receitas += Number(t.valor_outro) || 0;
         }
       }
-    } else if (t.dividido_com === usuario) {
-      // Recebi um gasto dividido — minha parte vai para débitos
+    } else if (t.dividido_com === usuario && saldoDesfavoravel) {
+      // Recebi um gasto dividido — minha parte vai para débitos, só se o
+      // saldo geral estiver contra mim
       debitos += Number(t.valor_outro) || 0;
     }
   });
@@ -320,34 +332,8 @@ function carregarDashboard(usuario, periodo) {
   const sheetT = getSheet(SHEET_NAMES.TRANSACOES);
   const todasLinhas = sheetT.getDataRange().getValues().slice(1).map(linhaParaObjeto);
 
-  // ---- Resumo do período ----
-  const linhasDoPeriodo = todasLinhas.filter(
-    t => normalizarPeriodo(t.periodo) === periodo && t.status_periodo !== 'fechado'
-  );
-  let receitas = 0;
-  let debitos = 0;
-  linhasDoPeriodo.forEach(t => {
-    if (t.dono === usuario) {
-      if (t.tipo === 'receita') {
-        receitas += Number(t.valor_dono) || 0;
-      } else if (t.tipo === 'debito') {
-        debitos += Number(t.valor_dono) || 0;
-        if (t.subtipo === 'dividido' && t.valor_outro) {
-          receitas += Number(t.valor_outro) || 0;
-        }
-      }
-    } else if (t.dividido_com === usuario) {
-      debitos += Number(t.valor_outro) || 0;
-    }
-  });
-  const resumo = { receitas: receitas, debitos: debitos, saldo: receitas - debitos, periodo: periodo };
-
-  // ---- Últimos lançamentos do usuário no período ----
-  const transacoes = linhasDoPeriodo
-    .filter(t => t.dono === usuario || t.dividido_com === usuario)
-    .sort((a, b) => new Date(b.data) - new Date(a.data));
-
-  // ---- Saldo entre usuários (considera todas as transações divididas, não só do período) ----
+  // ---- Saldo entre usuários (calculado antes do resumo, pois o resumo
+  // do período depende da direção desse saldo geral) ----
   let thalesAdiantouParaTamires = 0;
   let tamiresAdiantouParaThales = 0;
   todasLinhas.filter(t => t.subtipo === 'dividido').forEach(t => {
@@ -381,6 +367,37 @@ function carregarDashboard(usuario, periodo) {
     valor: valorAbsoluto,
     quitado: valorAbsoluto < 0.01,
   };
+
+  const outro = outroUsuario(usuario);
+  const saldoFavoravel = quemDeve === outro; // o outro deve para mim
+  const saldoDesfavoravel = quemDeve === usuario; // eu devo para o outro
+
+  // ---- Resumo do período ----
+  const linhasDoPeriodo = todasLinhas.filter(
+    t => normalizarPeriodo(t.periodo) === periodo && t.status_periodo !== 'fechado'
+  );
+  let receitas = 0;
+  let debitos = 0;
+  linhasDoPeriodo.forEach(t => {
+    if (t.dono === usuario) {
+      if (t.tipo === 'receita') {
+        receitas += Number(t.valor_dono) || 0;
+      } else if (t.tipo === 'debito') {
+        debitos += Number(t.valor_dono) || 0;
+        if (t.subtipo === 'dividido' && t.valor_outro && saldoFavoravel) {
+          receitas += Number(t.valor_outro) || 0;
+        }
+      }
+    } else if (t.dividido_com === usuario && saldoDesfavoravel) {
+      debitos += Number(t.valor_outro) || 0;
+    }
+  });
+  const resumo = { receitas: receitas, debitos: debitos, saldo: receitas - debitos, periodo: periodo };
+
+  // ---- Últimos lançamentos do usuário no período ----
+  const transacoes = linhasDoPeriodo
+    .filter(t => t.dono === usuario || t.dividido_com === usuario)
+    .sort((a, b) => new Date(b.data) - new Date(a.data));
 
   return { resumo: resumo, saldo: saldo, transacoes: transacoes };
 }

@@ -124,6 +124,9 @@ export default function Historico({ usuario, onEditarLancamento, recarregar }) {
               const valorExibido = dividido ? item.valor_outro : item.valor_dono;
               const positivo = ehReceita || souCredor;
               const fixo = isFixo(item);
+              // Quando eu lancei o dividido e não ficou 100% para o outro,
+              // mostro os dois lados: o que tenho a receber e a minha própria parte.
+              const minhaParteTambem = souCredor && Number(item.valor_dono) > 0;
 
               return (
                 <View key={item.id || i}>
@@ -159,9 +162,16 @@ export default function Historico({ usuario, onEditarLancamento, recarregar }) {
                         </View>
                       </View>
                     </View>
-                    <Text style={[styles.valor, { color: positivo ? COLORS.green : fixo ? COLORS.yellow : COLORS.red }]}>
-                      {positivo ? '+' : '-'}R$ {formatarMoeda(valorExibido)}
-                    </Text>
+                    {minhaParteTambem ? (
+                      <View style={{ alignItems: 'flex-end' }}>
+                        <Text style={[styles.valor, { color: COLORS.green }]}>+R$ {formatarMoeda(valorExibido)}</Text>
+                        <Text style={styles.valorParteMenor}>-R$ {formatarMoeda(item.valor_dono)} sua parte</Text>
+                      </View>
+                    ) : (
+                      <Text style={[styles.valor, { color: positivo ? COLORS.green : fixo ? COLORS.yellow : COLORS.red }]}>
+                        {positivo ? '+' : '-'}R$ {formatarMoeda(valorExibido)}
+                      </Text>
+                    )}
                   </TouchableOpacity>
                 </View>
               );
@@ -193,5 +203,6 @@ const styles = StyleSheet.create({
   icone: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   descricao: { color: COLORS.text, fontSize: 14, fontWeight: '600' },
   valor: { fontSize: 15, fontWeight: '700' },
+  valorParteMenor: { fontSize: 11, fontWeight: '600', color: COLORS.red, marginTop: 2 },
   textoVazio: { color: COLORS.muted, textAlign: 'center', marginTop: 40 },
 });
