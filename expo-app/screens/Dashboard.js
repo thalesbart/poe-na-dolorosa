@@ -249,22 +249,16 @@ export default function Dashboard({ usuario, fotos = {}, onFotoAtualizada }) {
         {Object.keys(CONFIG_CATEGORIA).map((id) => {
           const cfg = CONFIG_CATEGORIA[id];
           const emEdicao = categoriaEditando === id;
-          return (
-            <TouchableOpacity
-              key={id}
-              style={styles.cartaoCategoria}
-              activeOpacity={0.7}
-              disabled={emEdicao}
-              onPress={() => handleTocarCard(id)}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                <View style={[styles.iconeCircular, { backgroundColor: cfg.soft }]}>
-                  <Text>{cfg.icone}</Text>
-                </View>
-                <Text style={styles.labelCategoria}>{cfg.label}</Text>
-              </View>
 
-              {emEdicao ? (
+          if (emEdicao) {
+            return (
+              <View key={id} style={styles.cartaoCategoria}>
+                <View style={styles.linhaIconeLabel}>
+                  <View style={[styles.iconeCircular, { backgroundColor: cfg.soft }]}>
+                    <Text>{cfg.icone}</Text>
+                  </View>
+                  <Text style={styles.labelCategoria}>{cfg.label}</Text>
+                </View>
                 <View style={styles.linhaEdicaoCategoria}>
                   <TextInput
                     style={styles.inputCategoria}
@@ -282,23 +276,40 @@ export default function Dashboard({ usuario, fotos = {}, onFotoAtualizada }) {
                     <Text style={styles.botaoEdicaoConfirmar}>{salvandoCategoria ? '…' : '✓'}</Text>
                   </TouchableOpacity>
                 </View>
-              ) : (
-                <Text style={[styles.valorCategoria, { color: cfg.cor }]}>R$ {formatarMoeda(totais[id])}</Text>
-              )}
+              </View>
+            );
+          }
+
+          return (
+            <TouchableOpacity
+              key={id}
+              style={[styles.cartaoCategoria, styles.linhaCategoria]}
+              activeOpacity={0.7}
+              onPress={() => handleTocarCard(id)}
+            >
+              <View style={styles.linhaIconeLabel}>
+                <View style={[styles.iconeCircular, { backgroundColor: cfg.soft }]}>
+                  <Text>{cfg.icone}</Text>
+                </View>
+                <Text style={styles.labelCategoria}>{cfg.label}</Text>
+              </View>
+              <Text style={[styles.valorCategoria, { color: cfg.cor }]}>R$ {formatarMoeda(totais[id])}</Text>
             </TouchableOpacity>
           );
         })}
 
         {/* Contabilidade do que foi dividido — somente informativo, não editável aqui */}
-        <View style={styles.cartaoCategoria}>
-          <View style={[styles.iconeCircular, { backgroundColor: COLORS.accentSoft }]}>
-            <Text>⇄</Text>
-          </View>
-          <View style={{ marginLeft: 12, flex: 1 }}>
-            <Text style={styles.labelCategoria}>Dividido no mês</Text>
-            <Text style={styles.textoDividido}>
-              A receber de {outro}: R$ {formatarMoeda(dividoCredor)} · A pagar: R$ {formatarMoeda(dividoDevedor)}
-            </Text>
+        <View style={[styles.cartaoCategoria, styles.linhaCategoria]}>
+          <View style={styles.linhaIconeLabel}>
+            <View style={[styles.iconeCircular, { backgroundColor: COLORS.accentSoft }]}>
+              <Text>⇄</Text>
+            </View>
+            <View style={{ flexShrink: 1 }}>
+              <Text style={styles.labelCategoria}>Dividido no mês</Text>
+              <Text style={[styles.textoDividido, { marginLeft: 12 }]}>
+                A receber de {outro}: R$ {formatarMoeda(dividoCredor)} · A pagar: R$ {formatarMoeda(dividoDevedor)}
+              </Text>
+            </View>
           </View>
         </View>
       </View>
@@ -341,18 +352,20 @@ const styles = StyleSheet.create({
   confirmacaoTexto: { color: COLORS.text, fontSize: 13, textAlign: 'center' },
   iconeCircular: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   cartaoCategoria: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: COLORS.card, borderWidth: 1, borderColor: COLORS.border,
     borderRadius: 14, padding: 14, marginBottom: 10,
   },
-  labelCategoria: { color: COLORS.text, fontSize: 14, fontWeight: '600', marginLeft: 12 },
+  linhaCategoria: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  linhaIconeLabel: { flexDirection: 'row', alignItems: 'center', flexShrink: 1 },
+  labelCategoria: { color: COLORS.text, fontSize: 14, fontWeight: '600', marginLeft: 12, flexShrink: 1 },
   valorCategoria: { fontSize: 15, fontWeight: '700' },
   textoDividido: { color: COLORS.muted, fontSize: 11, marginTop: 2 },
-  linhaEdicaoCategoria: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  linhaEdicaoCategoria: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
   inputCategoria: {
+    flex: 1,
     backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.accent + '55',
-    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, color: COLORS.text,
-    fontSize: 14, fontWeight: '700', minWidth: 90, textAlign: 'right',
+    borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, color: COLORS.text,
+    fontSize: 14, fontWeight: '700', textAlign: 'right',
   },
   botaoEdicaoCancelar: { color: COLORS.muted, fontSize: 18 },
   botaoEdicaoConfirmar: { color: COLORS.green, fontSize: 18, fontWeight: '700' },
