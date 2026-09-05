@@ -4,7 +4,7 @@ import Avatar from '../components/Avatar';
 import SelectDropdown from '../components/SelectDropdown';
 import PromptModal from '../components/PromptModal';
 import { api } from '../services/api';
-import { COLORS, outroUsuario, periodoAtual } from '../theme';
+import { COLORS, outroUsuario, periodoAtual, parseValorInput } from '../theme';
 
 const CATEGORIAS_PADRAO = ['Alimentação', 'Transporte', 'Lazer', 'Saúde', 'Moradia', 'Custos Fixos', 'Outros'];
 
@@ -75,8 +75,8 @@ export default function FormLancamento({ usuario, fotos = {}, lancamento, onSalv
     }).finally(() => setCarregandoOpcoes(false));
   }, []);
 
-  const totalNum = parseFloat(total) || 0;
-  const valorOutroNum = subtipo === 'dividido' ? parseFloat(valorOutroInput) || 0 : 0;
+  const totalNum = parseValorInput(total) || 0;
+  const valorOutroNum = subtipo === 'dividido' ? parseValorInput(valorOutroInput) || 0 : 0;
   const minhaParte = totalNum > 0 ? totalNum - valorOutroNum : 0;
 
   const handleSelecionarPercentual = (percentual) => {
@@ -93,7 +93,7 @@ export default function FormLancamento({ usuario, fotos = {}, lancamento, onSalv
   const handleAlterarTotal = (texto) => {
     setTotal(texto);
     if (percentualAtivo) {
-      const novoTotal = parseFloat(texto) || 0;
+      const novoTotal = parseValorInput(texto) || 0;
       const novoValor = novoTotal > 0 ? arredondar2((novoTotal * Number(percentualAtivo)) / 100) : 0;
       setValorOutroInput(novoValor > 0 ? String(novoValor) : '');
     }

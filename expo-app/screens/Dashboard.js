@@ -3,7 +3,7 @@ import { View, Text, TextInput, ScrollView, TouchableOpacity, StyleSheet, Activi
 import Avatar from '../components/Avatar';
 import { api } from '../services/api';
 import { escolherEEnviarFoto } from '../services/foto';
-import { COLORS, outroUsuario, periodoAtual, formatarMoeda } from '../theme';
+import { COLORS, outroUsuario, periodoAtual, formatarMoeda, parseValorInput } from '../theme';
 
 const DESCRICAO_INVESTIMENTOS = 'investimentos';
 const DESCRICAO_DESPESAS_FIXAS = 'despesas fixas';
@@ -86,7 +86,7 @@ export default function Dashboard({ usuario, fotos = {}, onFotoAtualizada }) {
   };
 
   const handleConfirmarEdicaoValor = async () => {
-    const novoValor = parseFloat(valorInput) || 0;
+    const novoValor = parseValorInput(valorInput) || 0;
     if (novoValor <= 0) {
       Alert.alert('Valor inválido', 'Informe um valor maior que zero.');
       return;

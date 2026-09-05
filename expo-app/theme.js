@@ -37,3 +37,23 @@ export function formatarMoeda(valor) {
   const num = Number(valor) || 0;
   return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
+
+/**
+ * Converte texto digitado num campo de valor para número, aceitando tanto
+ * "150.50" quanto "150,50" — o teclado numérico do Android costuma usar
+ * vírgula como separador decimal (padrão brasileiro), e o parseFloat comum
+ * ignora tudo depois da vírgula, cortando os centavos (ou zerando o valor).
+ */
+export function parseValorInput(texto) {
+  if (texto === null || texto === undefined) return NaN;
+  let s = String(texto).trim();
+  if (s === '') return NaN;
+  if (s.includes('.') && s.includes(',')) {
+    // "1.500,50" — ponto como separador de milhar, vírgula como decimal
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else if (s.includes(',')) {
+    // "150,50" — vírgula como separador decimal
+    s = s.replace(',', '.');
+  }
+  return parseFloat(s);
+}
