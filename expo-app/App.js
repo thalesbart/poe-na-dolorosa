@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import Entrada from './screens/Entrada';
@@ -76,46 +76,41 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.appContainer}>
-      <KeyboardAvoidingView
-        style={styles.appContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <View style={styles.telaContainer}>
-          {tela === 'dashboard' && (
-            <Dashboard usuario={usuario} fotos={fotos} onFotoAtualizada={atualizarFotos} key={recarregarHistorico} />
-          )}
-          {tela === 'historico' && (
-            <Historico usuario={usuario} onEditarLancamento={abrirEdicao} recarregar={recarregarHistorico} />
-          )}
-          {tela === 'novo' && (
-            <FormLancamento usuario={usuario} fotos={fotos} lancamento={lancamentoEditando} onSalvo={fecharFormulario} onVoltar={fecharFormulario} />
-          )}
-          {tela === 'acerto' && <Acerto usuario={usuario} fotos={fotos} onAcertoRegistrado={() => setRecarregarHistorico((v) => v + 1)} />}
-        </View>
-
-        {tela !== 'novo' && (
-          <View style={styles.bottomNav}>
-            {TABS.map((t) => (
-              <TouchableOpacity
-                key={t.id}
-                style={[styles.tab, t.principal && styles.tabPrincipal]}
-                onPress={() => setTela(t.id)}
-              >
-                <Text style={[styles.tabIcone, { color: t.principal ? '#fff' : tela === t.id ? COLORS.accent : COLORS.muted }]}>
-                  {t.icone}
-                </Text>
-                <Text style={[styles.tabLabel, { color: t.principal ? '#fff' : tela === t.id ? COLORS.accent : COLORS.muted }]}>
-                  {t.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+      <View style={styles.telaContainer}>
+        {tela === 'dashboard' && (
+          <Dashboard usuario={usuario} fotos={fotos} onFotoAtualizada={atualizarFotos} key={recarregarHistorico} />
         )}
+        {tela === 'historico' && (
+          <Historico usuario={usuario} onEditarLancamento={abrirEdicao} recarregar={recarregarHistorico} />
+        )}
+        {tela === 'novo' && (
+          <FormLancamento usuario={usuario} fotos={fotos} lancamento={lancamentoEditando} onSalvo={fecharFormulario} onVoltar={fecharFormulario} />
+        )}
+        {tela === 'acerto' && <Acerto usuario={usuario} fotos={fotos} onAcertoRegistrado={() => setRecarregarHistorico((v) => v + 1)} />}
+      </View>
 
-        <TouchableOpacity style={styles.trocarUsuario} onPress={trocarUsuario}>
-          <Text style={styles.trocarUsuarioTexto}>trocar usuário</Text>
-        </TouchableOpacity>
-      </KeyboardAvoidingView>
+      {tela !== 'novo' && (
+        <View style={styles.bottomNav}>
+          {TABS.map((t) => (
+            <TouchableOpacity
+              key={t.id}
+              style={[styles.tab, t.principal && styles.tabPrincipal]}
+              onPress={() => setTela(t.id)}
+            >
+              <Text style={[styles.tabIcone, { color: t.principal ? '#fff' : tela === t.id ? COLORS.accent : COLORS.muted }]}>
+                {t.icone}
+              </Text>
+              <Text style={[styles.tabLabel, { color: t.principal ? '#fff' : tela === t.id ? COLORS.accent : COLORS.muted }]}>
+                {t.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      <TouchableOpacity style={styles.trocarUsuario} onPress={trocarUsuario}>
+        <Text style={styles.trocarUsuarioTexto}>trocar usuário</Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }

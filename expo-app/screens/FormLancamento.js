@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import Avatar from '../components/Avatar';
 import SelectDropdown from '../components/SelectDropdown';
 import PromptModal from '../components/PromptModal';
@@ -179,7 +180,13 @@ export default function FormLancamento({ usuario, fotos = {}, lancamento, onSalv
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <KeyboardAwareScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      enableOnAndroid
+      extraScrollHeight={20}
+      keyboardShouldPersistTaps="handled"
+    >
       <View style={styles.header}>
         <TouchableOpacity style={styles.botaoVoltar} onPress={onVoltar}>
           <Text style={styles.textoVoltar}>←</Text>
@@ -372,7 +379,7 @@ export default function FormLancamento({ usuario, fotos = {}, lancamento, onSalv
         onConfirmar={handleConfirmarNovoItem}
         onCancelar={() => setPromptAberto(null)}
       />
-    </ScrollView>
+    </KeyboardAwareScrollView>
   );
 }
 
