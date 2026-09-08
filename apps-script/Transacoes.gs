@@ -270,12 +270,12 @@ function fecharPeriodo(body) {
 
 /**
  * Calcula o resumo do dashboard para um usuário em um período:
- * receitas, débitos totais (próprios + parte dividida) e saldo.
+ * receitas, débitos totais (próprios) e saldo.
  *
- * A parte dividida (o que o outro usuário deve, ou o que devo a ele) só
- * entra em receitas/débitos se isso for coerente com o saldo GERAL entre
- * os dois usuários — senão daria pra parecer "receita" um valor que na
- * prática está sendo consumido por uma dívida maior na direção contrária.
+ * O saldo entre os dois usuários entra como um único valor — não como a
+ * soma de cada lançamento dividido do período. Se o saldo geral estiver a
+ * favor do usuário (o outro deve para ele), entra uma vez em receitas; se
+ * estiver contra (ele deve para o outro), entra uma vez em débitos.
  */
 function calcularResumo(usuario, periodo) {
   garantirCabecalho();
@@ -286,8 +286,6 @@ function calcularResumo(usuario, periodo) {
 
   const saldoGeral = calcularSaldoEntreUsuarios();
   const outro = outroUsuario(usuario);
-  const saldoFavoravel = saldoGeral.quem_deve === outro; // o outro deve para mim
-  const saldoDesfavoravel = saldoGeral.quem_deve === usuario; // eu devo para o outro
 
   let receitas = 0;
   let debitos = 0;
@@ -297,20 +295,19 @@ function calcularResumo(usuario, periodo) {
       if (t.tipo === 'receita') {
         receitas += Number(t.valor_dono) || 0;
       } else if (t.tipo === 'debito') {
-        // Minha parte vai para débitos
+        // Minha parte (o que eu mesmo gastei) sempre conta como débito,
+        // seja pessoal ou dividido
         debitos += Number(t.valor_dono) || 0;
-        // Parte da outra pessoa vai para receitas (ela me deve) — só se o
-        // saldo geral entre nós dois estiver a meu favor
-        if (t.subtipo === 'dividido' && t.valor_outro && saldoFavoravel) {
-          receitas += Number(t.valor_outro) || 0;
-        }
       }
-    } else if (t.dividido_com === usuario && saldoDesfavoravel) {
-      // Recebi um gasto dividido — minha parte vai para débitos, só se o
-      // saldo geral estiver contra mim
-      debitos += Number(t.valor_outro) || 0;
     }
   });
+
+  // Saldo entre os usuários entra como um único valor, não por transação
+  if (saldoGeral.quem_deve === outro) {
+    receitas += saldoGeral.valor;
+  } else if (saldoGeral.quem_deve === usuario) {
+    debitos += saldoGeral.valor;
+  }
 
   return {
     receitas: receitas,
@@ -369,8 +366,6 @@ function carregarDashboard(usuario, periodo) {
   };
 
   const outro = outroUsuario(usuario);
-  const saldoFavoravel = quemDeve === outro; // o outro deve para mim
-  const saldoDesfavoravel = quemDeve === usuario; // eu devo para o outro
 
   // ---- Resumo do período ----
   const linhasDoPeriodo = todasLinhas.filter(
@@ -383,15 +378,20 @@ function carregarDashboard(usuario, periodo) {
       if (t.tipo === 'receita') {
         receitas += Number(t.valor_dono) || 0;
       } else if (t.tipo === 'debito') {
+        // Minha parte (o que eu mesmo gastei) sempre conta como débito,
+        // seja pessoal ou dividido
         debitos += Number(t.valor_dono) || 0;
-        if (t.subtipo === 'dividido' && t.valor_outro && saldoFavoravel) {
-          receitas += Number(t.valor_outro) || 0;
-        }
       }
-    } else if (t.dividido_com === usuario && saldoDesfavoravel) {
-      debitos += Number(t.valor_outro) || 0;
     }
   });
+
+  // Saldo entre os usuários entra como um único valor, não por transação
+  if (quemDeve === outro) {
+    receitas += valorAbsoluto;
+  } else if (quemDeve === usuario) {
+    debitos += valorAbsoluto;
+  }
+
   const resumo = { receitas: receitas, debitos: debitos, saldo: receitas - debitos, periodo: periodo };
 
   // ---- Últimos lançamentos do usuário no período ----
