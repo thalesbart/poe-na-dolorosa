@@ -45,7 +45,7 @@ export default function App() {
   const escolherUsuario = useCallback(async (nome) => {
     await AsyncStorage.setItem('@pixmedeve_usuario', nome);
     setUsuario(nome);
-    registrarPushNotifications(nome);
+    registrarPushNotifications(nome).catch(() => {});
   }, []);
 
   const trocarUsuario = useCallback(async () => {

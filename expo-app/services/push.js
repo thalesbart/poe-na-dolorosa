@@ -26,30 +26,39 @@ export async function registrarPushNotifications(usuario) {
     return null;
   }
 
-  const { status: statusExistente } = await Notifications.getPermissionsAsync();
-  let status = statusExistente;
+  // Desde o SDK 53, o Expo Go removeu o suporte a notificações push remotas
+  // (só funciona num development build) — getExpoPushTokenAsync lança erro
+  // nesse caso. Não deixamos isso derrubar o app: sem token, a notificação
+  // de gasto dividido simplesmente não é enviada pra esse usuário.
+  try {
+    const { status: statusExistente } = await Notifications.getPermissionsAsync();
+    let status = statusExistente;
 
-  if (status !== 'granted') {
-    const { status: novoStatus } = await Notifications.requestPermissionsAsync();
-    status = novoStatus;
-  }
+    if (status !== 'granted') {
+      const { status: novoStatus } = await Notifications.requestPermissionsAsync();
+      status = novoStatus;
+    }
 
-  if (status !== 'granted') {
-    console.log('Permissão de notificação negada.');
+    if (status !== 'granted') {
+      console.log('Permissão de notificação negada.');
+      return null;
+    }
+
+    const tokenData = await Notifications.getExpoPushTokenAsync();
+    const token = tokenData.data;
+
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('default', {
+        name: 'default',
+        importance: Notifications.AndroidImportance.DEFAULT,
+      });
+    }
+
+    await api.salvarTokenPush(usuario, token);
+
+    return token;
+  } catch (err) {
+    console.log('Não foi possível registrar notificações push (normal no Expo Go a partir do SDK 53):', err.message);
     return null;
   }
-
-  const tokenData = await Notifications.getExpoPushTokenAsync();
-  const token = tokenData.data;
-
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'default',
-      importance: Notifications.AndroidImportance.DEFAULT,
-    });
-  }
-
-  await api.salvarTokenPush(usuario, token);
-
-  return token;
 }
