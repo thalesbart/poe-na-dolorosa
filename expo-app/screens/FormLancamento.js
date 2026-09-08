@@ -203,6 +203,7 @@ export default function FormLancamento({ usuario, fotos = {}, lancamento, onSalv
             onPress={() => {
               setSubtipo(s.id);
               setDescricao('');
+              setCategoria('');
               setForma('');
               setPercentualAtivo('50');
               setValorOutroInput('');
@@ -251,8 +252,8 @@ export default function FormLancamento({ usuario, fotos = {}, lancamento, onSalv
         </View>
       )}
 
-      {/* Categoria — só para débito dividido */}
-      {subtipo === 'dividido' && (
+      {/* Categoria — para qualquer débito (pessoal ou dividido), não para receita */}
+      {subtipo !== 'receita' && (
         <SelectDropdown
           label="Categoria"
           value={categoria}
