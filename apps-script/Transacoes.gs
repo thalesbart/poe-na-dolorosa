@@ -292,11 +292,12 @@ function calcularResumo(usuario, periodo) {
 
   linhas.forEach(t => {
     if (t.dono === usuario) {
-      if (t.tipo === 'receita') {
+      if (t.subtipo === 'receita') {
         receitas += Number(t.valor_dono) || 0;
-      } else if (t.tipo === 'debito') {
-        // Minha parte (o que eu mesmo gastei) sempre conta como débito,
-        // seja pessoal ou dividido
+      } else if (t.subtipo === 'pessoal') {
+        // Só despesa pessoal entra direto em débitos. Despesa dividida
+        // não entra por transação — ela só afeta o resultado através do
+        // saldo geral entre os usuários, somado uma única vez abaixo.
         debitos += Number(t.valor_dono) || 0;
       }
     }
@@ -375,11 +376,12 @@ function carregarDashboard(usuario, periodo) {
   let debitos = 0;
   linhasDoPeriodo.forEach(t => {
     if (t.dono === usuario) {
-      if (t.tipo === 'receita') {
+      if (t.subtipo === 'receita') {
         receitas += Number(t.valor_dono) || 0;
-      } else if (t.tipo === 'debito') {
-        // Minha parte (o que eu mesmo gastei) sempre conta como débito,
-        // seja pessoal ou dividido
+      } else if (t.subtipo === 'pessoal') {
+        // Só despesa pessoal entra direto em débitos. Despesa dividida
+        // não entra por transação — ela só afeta o resultado através do
+        // saldo geral entre os usuários, somado uma única vez abaixo.
         debitos += Number(t.valor_dono) || 0;
       }
     }
