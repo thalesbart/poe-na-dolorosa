@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import Tag from '../components/Tag';
 import { api } from '../services/api';
-import { COLORS, outroUsuario, periodoAtual, formatarMoeda } from '../theme';
+import { COLORS, outroUsuario, periodoAtual, formatarMoeda, formatarData } from '../theme';
 
 const FILTROS = [
   { id: 'todos', label: 'Todos' },
@@ -153,6 +153,7 @@ export default function Historico({ usuario, onEditarLancamento, recarregar }) {
                       </View>
                       <View style={{ marginLeft: 12, flex: 1 }}>
                         <Text style={styles.descricao}>{item.descricao}</Text>
+                        <Text style={styles.dataTexto}>{formatarData(item.data)}</Text>
                         <View style={{ flexDirection: 'row', gap: 6, marginTop: 3, flexWrap: 'wrap' }}>
                           {fixo && <Tag color={COLORS.yellow}>fixo</Tag>}
                           {item.forma_pagamento ? <Tag color={COLORS.muted}>{item.forma_pagamento}</Tag> : null}
@@ -202,6 +203,7 @@ const styles = StyleSheet.create({
   itemLinha: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   icone: { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   descricao: { color: COLORS.text, fontSize: 14, fontWeight: '600' },
+  dataTexto: { color: COLORS.muted, fontSize: 11, marginTop: 2 },
   valor: { fontSize: 15, fontWeight: '700' },
   valorParteMenor: { fontSize: 11, fontWeight: '600', color: COLORS.red, marginTop: 2 },
   textoVazio: { color: COLORS.muted, textAlign: 'center', marginTop: 40 },

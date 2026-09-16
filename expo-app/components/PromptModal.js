@@ -14,6 +14,9 @@ export default function PromptModal({
   onConfirmar,
   onCancelar,
   corDestaque = COLORS.accent,
+  labelConfirmar = 'Adicionar',
+  labelSucesso = 'Cadastrado com sucesso!',
+  teclado = 'default',
 }) {
   const [valor, setValor] = useState('');
   const [salvando, setSalvando] = useState(false);
@@ -50,7 +53,7 @@ export default function PromptModal({
           {sucesso ? (
             <View style={styles.sucessoContainer}>
               <Text style={styles.sucessoEmoji}>✅</Text>
-              <Text style={styles.sucessoTexto}>Cadastrado com sucesso!</Text>
+              <Text style={styles.sucessoTexto}>{labelSucesso}</Text>
             </View>
           ) : (
             <>
@@ -65,6 +68,7 @@ export default function PromptModal({
                 onChangeText={setValor}
                 autoFocus
                 editable={!salvando}
+                keyboardType={teclado}
               />
 
               {salvando ? (
@@ -81,7 +85,7 @@ export default function PromptModal({
                     style={[styles.botaoConfirmar, { backgroundColor: corDestaque }]}
                     onPress={handleConfirmar}
                   >
-                    <Text style={styles.textoConfirmar}>Adicionar</Text>
+                    <Text style={styles.textoConfirmar}>{labelConfirmar}</Text>
                   </TouchableOpacity>
                 </View>
               )}

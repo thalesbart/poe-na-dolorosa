@@ -5,7 +5,7 @@ import Avatar from '../components/Avatar';
 import SelectDropdown from '../components/SelectDropdown';
 import PromptModal from '../components/PromptModal';
 import { api } from '../services/api';
-import { COLORS, outroUsuario, periodoAtual, parseValorInput } from '../theme';
+import { COLORS, outroUsuario, periodoAtual, parseValorInput, formatarData, aplicarMascaraData, parseDataInput } from '../theme';
 
 const CATEGORIAS_PADRAO = ['Alimentação', 'Transporte', 'Lazer', 'Saúde', 'Moradia', 'Custos Fixos', 'Outros'];
 
@@ -56,6 +56,7 @@ export default function FormLancamento({ usuario, fotos = {}, lancamento, onSalv
   );
   const [percentualAtivo, setPercentualAtivo] = useState(percentualAtivoInicial(lancamento));
   const [valorOutroInput, setValorOutroInput] = useState(valorOutroInicial(lancamento));
+  const [dataInput, setDataInput] = useState(formatarData(lancamento?.data || new Date()));
   const [salvando, setSalvando] = useState(false);
 
   const [descricoesPessoais, setDescricoesPessoais] = useState([]);
@@ -91,6 +92,10 @@ export default function FormLancamento({ usuario, fotos = {}, lancamento, onSalv
     setPercentualAtivo(null);
   };
 
+  const handleAlterarData = (texto) => {
+    setDataInput(aplicarMascaraData(texto));
+  };
+
   const handleAlterarTotal = (texto) => {
     setTotal(texto);
     if (percentualAtivo) {
@@ -124,6 +129,7 @@ export default function FormLancamento({ usuario, fotos = {}, lancamento, onSalv
 
   const validar = () => {
     if (!descricao) return 'Preencha a descrição.';
+    if (!parseDataInput(dataInput)) return 'Informe uma data válida (DD/MM/AAAA).';
     if (totalNum <= 0) return 'Informe um valor total válido.';
     if (subtipo === 'dividido' && valorOutroNum <= 0) return `Informe a parte de ${outro}.`;
     if (subtipo === 'dividido' && valorOutroNum > totalNum) return `O valor de ${outro} não pode ser maior que o total.`;
@@ -150,6 +156,7 @@ export default function FormLancamento({ usuario, fotos = {}, lancamento, onSalv
         dividido_com: subtipo === 'dividido' ? outro : '',
         valor_outro: subtipo === 'dividido' ? valorOutroNum : '',
         periodo: periodoAtual(),
+        data: parseDataInput(dataInput).toISOString(),
       };
 
       if (editando) {
@@ -251,6 +258,20 @@ export default function FormLancamento({ usuario, fotos = {}, lancamento, onSalv
           />
         </View>
       )}
+
+      {/* Data do lançamento */}
+      <View>
+        <Text style={styles.label}>DATA</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="DD/MM/AAAA"
+          placeholderTextColor={COLORS.muted}
+          keyboardType="number-pad"
+          maxLength={10}
+          value={dataInput}
+          onChangeText={handleAlterarData}
+        />
+      </View>
 
       {/* Categoria — para qualquer débito (pessoal ou dividido), não para receita */}
       {subtipo !== 'receita' && (

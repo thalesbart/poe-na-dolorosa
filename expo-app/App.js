@@ -7,6 +7,7 @@ import Dashboard from './screens/Dashboard';
 import Historico from './screens/Historico';
 import FormLancamento from './screens/FormLancamento';
 import Acerto from './screens/Acerto';
+import Caixinhas from './screens/Caixinhas';
 import { registrarPushNotifications } from './services/push';
 import { api } from './services/api';
 import { COLORS } from './theme';
@@ -16,6 +17,7 @@ const TABS = [
   { id: 'historico', icone: '↕', label: 'Histórico' },
   { id: 'novo', icone: '+', label: 'Lançar', principal: true },
   { id: 'acerto', icone: '⇄', label: 'Acerto' },
+  { id: 'caixinhas', icone: '🐷', label: 'Caixinhas' },
 ];
 
 export default function App() {
@@ -87,6 +89,7 @@ export default function App() {
           <FormLancamento usuario={usuario} fotos={fotos} lancamento={lancamentoEditando} onSalvo={fecharFormulario} onVoltar={fecharFormulario} />
         )}
         {tela === 'acerto' && <Acerto usuario={usuario} fotos={fotos} onAcertoRegistrado={() => setRecarregarHistorico((v) => v + 1)} />}
+        {tela === 'caixinhas' && <Caixinhas usuario={usuario} />}
       </View>
 
       {tela !== 'novo' && (

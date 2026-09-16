@@ -18,6 +18,8 @@ const SHEET_NAMES = {
   FORMAS: 'formas_pagamento',
   CATEGORIAS: 'categorias',
   USUARIOS: 'usuarios',
+  CAIXINHAS: 'caixinhas',
+  CAIXINHA_MOVIMENTOS: 'caixinha_movimentos',
 };
 
 function getSheet(name) {
@@ -87,6 +89,10 @@ function doGet(e) {
         return jsonResponse(listarAcertos());
       case 'despesas_acerto':
         return jsonResponse(listarDespesasAcerto(e.parameter.acerto_id));
+      case 'caixinhas':
+        return jsonResponse(listarCaixinhas());
+      case 'movimentos_caixinha':
+        return jsonResponse(listarMovimentosCaixinha(e.parameter.caixinha_id));
       case 'resumo':
         // Resumo sempre precisa de um período concreto — usa o atual se vazio
         return jsonResponse(calcularResumo(usuario, periodoVazio ? periodoAtual() : periodoParam));
@@ -134,6 +140,14 @@ function doPost(e) {
         return jsonResponse(excluirTransacao(body));
       case 'registrar_acerto':
         return jsonResponse(registrarAcerto(body));
+      case 'criar_caixinha':
+        return jsonResponse(criarCaixinha(body));
+      case 'editar_caixinha':
+        return jsonResponse(editarCaixinha(body));
+      case 'excluir_caixinha':
+        return jsonResponse(excluirCaixinha(body));
+      case 'movimentar_caixinha':
+        return jsonResponse(movimentarCaixinha(body));
       case 'fechar_periodo':
         return jsonResponse(fecharPeriodo(body));
       case 'cadastrar_descricao':
