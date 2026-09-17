@@ -20,6 +20,8 @@ const SHEET_NAMES = {
   USUARIOS: 'usuarios',
   CAIXINHAS: 'caixinhas',
   CAIXINHA_MOVIMENTOS: 'caixinha_movimentos',
+  USUARIOS_TELEGRAM: 'usuarios_telegram',
+  CONVERSAS_TELEGRAM: 'conversas_telegram',
 };
 
 function getSheet(name) {
@@ -129,6 +131,13 @@ function doGet(e) {
 function doPost(e) {
   try {
     const body = JSON.parse(e.postData.contents);
+
+    // Update do bot do Telegram (webhook) — não tem "action", tem "update_id".
+    // Ver Telegram.gs para toda a lógica de comandos/conversa do bot.
+    if (body.update_id !== undefined) {
+      return processarAtualizacaoTelegram(body);
+    }
+
     const action = body.action;
 
     switch (action) {
